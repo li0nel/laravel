@@ -1,10 +1,10 @@
 FROM php:7.2-fpm
 
 # Copy composer.lock and composer.json
-COPY composer.json /var/www/
+COPY composer.json /var/www/html
 
 # Set working directory
-WORKDIR /var/www
+WORKDIR /var/www/html
 
 # Install dependencies
 RUN apt-get update && apt-get install -y \
@@ -37,15 +37,18 @@ RUN groupadd -g 1000 www
 RUN useradd -u 1000 -ms /bin/bash -g www www
 
 # Copy existing application directory contents
-COPY . /var/www
+COPY . /var/www/html
 RUN composer install
 
+RUN mkdir storage/logs
+RUN touch storage/logs/laravel.log
+
 # Copy existing application directory permissions
-COPY --chown=www:www . /var/www
+COPY --chown=www:www . /var/www/html
 
 # Change current user to www
 USER www
 
 # Expose port 9000 and start php-fpm server
 EXPOSE 9000
-CMD ["php-fpm"]
+CMD ["/bin/sh", "-c", "php artisan migrate --force && php-fpm -D | tail -f storage/logs/laravel.log"]
